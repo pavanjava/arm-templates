@@ -1,0 +1,90 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "accountName": {
+            "type": "string",
+            "defaultValue": "cosmos-mongo-acct",
+            "metadata": {
+                "description": "Cosmos DB account name"
+            }
+        },
+        "databaseName": {
+            "type": "string",
+            "defaultValue": "testdb",
+            "metadata": {
+                "description": "The name for the Mongo DB database"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for the Cosmos DB account."
+            }
+        },
+        "serverVersion": {
+            "type": "string",
+            "defaultValue":"4.2"
+        }
+    },
+    "functions": [],
+    "variables": {
+        "locations": [
+            {
+                "locationName": "eastus",
+                "failoverPriority": 0,
+                "isZoneRedundant": false
+            }
+        ]
+    },
+    "resources": [
+        {
+            "type": "Microsoft.DocumentDB/databaseAccounts",
+            "apiVersion": "2022-05-15",
+            "name": "[toLower(parameters('accountName'))]",
+            "location": "[parameters('location')]",
+            "kind": "MongoDB",
+            "properties": {
+                "consistencyPolicy": {
+                    "defaultConsistencyLevel": "Eventual",
+                    "maxIntervalInSeconds": 5,
+                    "maxStalenessPrefix": 5
+                },
+                "locations": "[variables('locations')]",
+                "databaseAccountOfferType": "Standard",
+                "enableAutomaticFailover": true,
+                "apiProperties": {
+                    "serverVersion": "[parameters('serverVersion')]"
+                },
+                "capabilities": [
+                    {
+                        "name": "DisableRateLimitingResponses"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.DocumentDB/databaseAccounts/mongodbDatabases",
+            "apiVersion": "2022-08-15",
+            "name": "[format('{0}/{1}', toLower(parameters('accountName')), parameters('databaseName'))]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "environment": "development",
+                "owner": "ARM-Template"
+            },
+            "properties": {
+                "options": {
+                    "autoscaleSettings": {
+                        "maxThroughput": 1
+                    },
+                    "throughput": 1
+                },
+                "resource": {
+                    "id": "[resourceGroup().id]"
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}
